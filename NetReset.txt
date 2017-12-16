@@ -1,0 +1,111 @@
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+
+class Button extends JButton {
+    public Button(String name, double width, double height, int number, Font font) {
+        super(name);
+        setFont(font);
+        setBounds(10, 10 + 10 * number + (int) height / 15 * number, (int) width / 8, (int) height / 15);
+    }
+}
+
+class Window extends JFrame implements ActionListener {
+    private final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+    private final double width = screenSize.getWidth();
+    private final double height = screenSize.getHeight();
+    Font fontButton = new Font("Garamond", Font.PLAIN, (int) height / 40);
+    Font fontText = new Font("Garamond", Font.BOLD, (int) height / 100);
+    private Button releaseButton = new Button("RELEASE", width, height, 1, fontButton);
+    private Button renewButton = new Button("RENEW", width, height, 2, fontButton);
+    private final Button resetButton= new Button("RESET", width, height, 0, fontButton);
+    private JTextArea resultLabel = new JTextArea();
+    private final JScrollPane resultPane = new JScrollPane(resultLabel);
+
+    public Window(){
+        setupWindow();
+    }
+
+    private void setupWindow() {
+        setSize((int) width / 2, (int) height / 3);
+        setTitle("NetReset");
+        setDefaultCloseOperation(3);
+        setVisible(true);
+        setLayout(null);
+        add(resetButton);
+        resetButton.addActionListener(this);
+        add(releaseButton);
+        releaseButton.addActionListener(this);
+        add(renewButton);
+        renewButton.addActionListener(this);
+        resultLabel.setFont(fontText);
+        resultPane.setBounds(30 + (int) width / 8, 10, (int) width * 3 / 8 - 60, (int) height / 3 - 85);
+        add(resultPane);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        final Object source = e.getSource();
+        if (source == releaseButton) {
+            resultLabel.append("Releasing...\n");
+            new CmdProcess("ipconfig /release").start(resultLabel);
+        } else if (source == renewButton) {
+            resultLabel.append("Renewing...'\n");
+            new CmdProcess("ipconfig /renew").start(resultLabel);
+        } else if (source == resetButton) {
+            resultLabel.append("Releasing...\n");
+            new CmdProcess("ipconfig /release").start(resultLabel);
+            resultLabel.append("Releasing...\n");
+            new CmdProcess("ipconfig /renew").start(resultLabel);
+        }
+    }
+}
+
+class CmdProcess {
+    private final String command;
+
+    public CmdProcess(final String command) {
+        this.command = command;
+    }
+
+    public final void start(JTextArea resultLabel) {
+        String line;
+        ProcessBuilder builder = new ProcessBuilder("cmd.exe", "/c", "cd \"C:\\Windows\\System32\" && " + command);
+        builder.redirectErrorStream(true);
+        Process p = null;
+        try {
+            p = builder.start();
+        } catch (IOException e) {
+            resultLabel.append(e.toString());
+        }
+        try {
+            BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+
+            while (true) {
+                line = r.readLine();
+                if (line == null) {
+                    break;
+                }
+                if (!line.equals(""))
+                    resultLabel.append(line.trim() + "\n");
+            }
+        } catch (Exception e) {
+            resultLabel.append(e.toString());
+        }
+    }
+}
+
+
+class App {
+    public static void main(String[] args) throws Exception {
+        Window window = new Window();
+    }
+}
